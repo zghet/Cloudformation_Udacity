@@ -1,0 +1,50 @@
+Parameters: 
+
+    Name:
+        Description: An new enviroment Lead Solutions Architect
+        Type: String
+#    PublicSubnet1:
+#        Description: Se trae la informacion de la subnet creada
+#        Type: String
+    
+
+Resources:
+
+  EC2Test:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-083654bd07b5da81d
+      InstanceType: t2.micro	
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sdk"
+        Ebs:
+          VolumeSize: '10'
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: '0'
+          SubnetId: subnet-096ef6ed1557fea55
+          GroupSet:
+          - !Ref SGBastion
+      KeyName: AWS_EC2_Demo	
+      Tags: 
+        - Key: Name 
+          Value: !Sub ${Name}
+
+  SGBastion:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+          GroupDescription: Allow SSH to our hosts 
+          VpcId: vpc-0938e8f6a31036902
+          SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: 0.0.0.0/0
+          SecurityGroupEgress:
+          - IpProtocol: tcp
+            FromPort: 80
+            ToPort: 80
+            CidrIp: 0.0.0.0/0
+          Tags: 
+            - Key: Name 
+              Value: !Sub ${Name}-Security-Group
