@@ -71,18 +71,18 @@ Resources:
             MapPublicIpOnLaunch: false
             Tags:
                 - Key: Name
-                  Value:  !Sub ${EnvironmentName} Public Subnet1
+                  Value:  !Sub ${EnvironmentName} Private Subnet1
 
     PrivateSubnet2:
         Type: AWS::EC2::Subnet
         Properties:
             VpcId: !Ref VPC
-            AvailabilityZone: !Select [ 0, !GetAZs '' ]
+            AvailabilityZone: !Select [ 1, !GetAZs '' ]
             CidrBlock: !Ref PrivateSubnet2CIDR
             MapPublicIpOnLaunch: false
             Tags:
                 - Key: Name
-                  Value:  !Sub ${EnvironmentName} Private Subnet1
+                  Value:  !Sub ${EnvironmentName} Private Subnet2
 
 
     InternetGateway:
@@ -114,6 +114,9 @@ Resources:
             FromPort: 80
             ToPort: 80
             CidrIp: 0.0.0.0/0
+            #Tags:
+            #    - Key: Name
+            #      Value: !Ref EnvironmentName
 
     WebServerSecGroup:
          Type: AWS::EC2::SecurityGroup
@@ -130,9 +133,7 @@ Resources:
              ToPort: 22
              CidrIp: 0.0.0.0/0
            SecurityGroupEgress:
-           - IpProtocol: tcp
-             FromPort: 0
-             ToPort: 65535 
+           - IpProtocol: -1
              CidrIp: 0.0.0.0/0
            Tags: 
              - Key: Name 
@@ -148,7 +149,7 @@ Resources:
               sudo apt-get install apache2 -y
               sudo systemctl start apache2.service   
               cd /var/www/html
-              echo "Udacity Demo Web Server Up and Running" > index.html       
+              echo "Udacity Demo Web Server Up and Running Hello its me" > index.html       
           ImageId: ami-0279c3b3186e54acd
           KeyName: AWS_EC2_Demo	
           SecurityGroups:
@@ -158,16 +159,20 @@ Resources:
           - DeviceName: "/dev/sdk"
             Ebs:
               VolumeSize: '10'
- 
+          #Tags:
+          #    - Key: Name
+          #      Value: !Ref EnvironmentName 
+
     WebAppGroup:
         Type: AWS::AutoScaling::AutoScalingGroup
         Properties:
           VPCZoneIdentifier: 
             - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
           LaunchConfigurationName:
             !Ref WebAppLaunchConfig
-          MinSize: '2'
-          MaxSize: '4'
+          MinSize: '4'
+          MaxSize: '6'
           TargetGroupARNs:
           - !Ref WebAppTargetGroup
 
@@ -240,6 +245,76 @@ Resources:
         Properties:
             AllocationId: !GetAtt NatGateway2EIP.AllocationId
             SubnetId: !Ref PublicSubnet2
+
+    PublicRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties: 
+            VpcId: !Ref VPC
+            Tags: 
+                - Key: Name 
+                  Value: !Sub ${EnvironmentName} Public Routes
+ 
+    DefaultPublicRoute: 
+        Type: AWS::EC2::Route
+        DependsOn: InternetGatewayAttachment
+        Properties: 
+            RouteTableId: !Ref PublicRouteTable
+            DestinationCidrBlock: 0.0.0.0/0
+            GatewayId: !Ref InternetGateway
+ 
+    PublicSubnet1RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PublicRouteTable
+            SubnetId: !Ref PublicSubnet1
+
+    PublicSubnet2RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PublicRouteTable
+            SubnetId: !Ref PublicSubnet2
+
+    PrivateRouteTable1:
+        Type: AWS::EC2::RouteTable
+        Properties: 
+            VpcId: !Ref VPC
+            Tags: 
+                - Key: Name 
+                  Value: !Sub ${EnvironmentName} Private Routes (AZ1)
+
+    DefaultPrivateRoute1:
+        Type: AWS::EC2::Route
+        Properties:
+            RouteTableId: !Ref PrivateRouteTable1
+            DestinationCidrBlock: 0.0.0.0/0
+            NatGatewayId: !Ref NatGateway1
+
+    PrivateSubnet1RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PrivateRouteTable1
+            SubnetId: !Ref PrivateSubnet1
+
+    PrivateRouteTable2:
+        Type: AWS::EC2::RouteTable
+        Properties: 
+            VpcId: !Ref VPC
+            Tags: 
+                - Key: Name 
+                  Value: !Sub ${EnvironmentName} Private Routes (AZ2)
+
+    DefaultPrivateRoute2:
+        Type: AWS::EC2::Route
+        Properties:
+            RouteTableId: !Ref PrivateRouteTable2
+            DestinationCidrBlock: 0.0.0.0/0
+            NatGatewayId: !Ref NatGateway2
+
+    PrivateSubnet2RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PrivateRouteTable2
+            SubnetId: !Ref PrivateSubnet2
 
 Outputs: 
 

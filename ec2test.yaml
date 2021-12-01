@@ -3,9 +3,7 @@ Parameters:
     Name:
         Description: An new enviroment Lead Solutions Architect
         Type: String
-#    PublicSubnet1:
-#        Description: Se trae la informacion de la subnet creada
-#        Type: String
+
     
 
 Resources:
@@ -22,7 +20,7 @@ Resources:
       NetworkInterfaces: 
         - AssociatePublicIpAddress: "true"
           DeviceIndex: '0'
-          SubnetId: subnet-096ef6ed1557fea55
+          SubnetId: subnet-00b43c3239928ed73
           GroupSet:
           - !Ref SGBastion
       KeyName: AWS_EC2_Demo	
@@ -34,16 +32,14 @@ Resources:
         Type: AWS::EC2::SecurityGroup
         Properties:
           GroupDescription: Allow SSH to our hosts 
-          VpcId: vpc-0938e8f6a31036902
+          VpcId: vpc-0ff98a8703f1a5ca7
           SecurityGroupIngress:
           - IpProtocol: tcp
             FromPort: 22
             ToPort: 22
             CidrIp: 0.0.0.0/0
           SecurityGroupEgress:
-          - IpProtocol: tcp
-            FromPort: 80
-            ToPort: 80
+          - IpProtocol: -1
             CidrIp: 0.0.0.0/0
           Tags: 
             - Key: Name 
